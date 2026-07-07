@@ -110,7 +110,7 @@ def _main(cfg, output_file):
 
     utils.import_user_module(cfg.common)
     models, saved_cfg, task = checkpoint_utils.load_model_ensemble_and_task([cfg.common_eval.path])
-    models = [model.eval().cuda() for model in models]
+    models = [model.eval().cuda() if torch.cuda.is_available() else model.eval() for model in models]
     saved_cfg.task.modalities = cfg.override.modalities
     task = tasks.setup_task(saved_cfg.task)
 
