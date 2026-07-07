@@ -203,7 +203,8 @@ def _main(cfg, output_file):
     num_sentences = 0
     has_target = True
     wps_meter = TimeMeter()
-    result_dict = {'utt_id': [], 'ref': [], 'hypo': []}
+    nbest = max(1, cfg.generation.nbest)
+    result_dict = {'utt_id': [], 'ref': [], 'hypo': [], 'hypo_nbest': []}
     for sample in progress:
         sample = utils.move_to_cuda(sample) if use_cuda else sample
         if "net_input" not in sample:
@@ -235,6 +236,15 @@ def _main(cfg, output_file):
             best_hypo = hypos[i][0]['tokens'].int().cpu()
             hypo_str = decode_fn(best_hypo)
             result_dict['hypo'].append(hypo_str)
+            # collect top-N hypotheses with scores (log-prob, base 2)
+            nb = []
+            for h in hypos[i][:nbest]:
+                tok = h['tokens'].int().cpu()
+                txt = decode_fn(tok)
+                sc = h['score']
+                sc = float(sc.item()) if hasattr(sc, 'item') else float(sc)
+                nb.append({'text': txt, 'score': sc})
+            result_dict['hypo_nbest'].append(nb)
             logger.info(f"\nREF:{ref_sent}\nHYP:{hypo_str}\n")
         wps_meter.update(num_generated_tokens)
         progress.log({"wps": round(wps_meter.avg)})
