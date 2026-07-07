@@ -22,6 +22,11 @@ def detect_face_landmarks(face_predictor_path, cnn_detector_path, root_dir, land
         if len(rects) == 0:
             rects = cnn_detector(gray)
             rects = [d.rect for d in rects]
+        # When multiple faces are detected (e.g. a face in a background
+        # painting/poster), pick the largest bounding box — the speaker is
+        # the closest to camera.
+        if len(rects) > 1:
+            rects = [max(rects, key=lambda r: (r.right()-r.left())*(r.bottom()-r.top())),]
         coords = None
         for (_, rect) in enumerate(rects):
             shape = predictor(gray, rect)
